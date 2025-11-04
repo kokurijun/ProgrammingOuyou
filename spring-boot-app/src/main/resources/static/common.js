@@ -15,7 +15,7 @@ const apiFetch = async (url, options = {}, accessToken) => {
 
     if ([401, 403].includes(response.status)) {
         localStorage.removeItem('user_session');
-        alert('認証されてません。再度ログインしてください。');
+        alert('認証されてません。再度ログインしてください。。再度ログインしてください。');
         window.location.href = '/index.html';
         throw new Error('Unauthorized');
     }
