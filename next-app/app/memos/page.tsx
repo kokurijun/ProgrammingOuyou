@@ -17,7 +17,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
-import { apiAuthFetch } from '@/lib/apiFetch';
+import { apiAuthFetch, errorHandling } from '@/lib/apiFetch';
 
 type Memo = {
   id: number;
@@ -35,10 +35,23 @@ export default function MemosPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
+  const [userEmail,setUserEmail ] = useState('');
   const router = useRouter();
 
-  async function loadMemos() {
-  }
+    const loadMemos = async () => {
+    await errorHandling(async () => {
+      const json = await apiAuthFetch('/api/memos');
+      const userData = localStorage.getItem('user_session');
+      console.log(userData);
+      if (!userData){
+        return;
+      }
+      const session = JSON.parse(userData);
+      const email = session.user.email;      
+      setUserEmail(email);
+      setMemos(json);
+    }, setError);
+  };
 
   useEffect(() => {
     (async () => {
@@ -46,19 +59,46 @@ export default function MemosPage() {
     })();
   }, []);
 
-    async function createMemo() {
-    setError('登録失敗しました。');
-  }
-  async function deleteMemo(id: number) {
-  }
-
-  function startEdit(memo: Memo) {
-  }
-
-  function cancelEdit() {
+  async function createMemo() {
+    await errorHandling(async () => {
+      await apiAuthFetch('/api/memos', {
+        method: 'POST',
+        body: JSON.stringify({ title, content }),
+      });
+      await loadMemos();
+    }, setError);
   }
 
-    async function updateMemo(id: number) {
+    async function deleteMemo(id: number) {
+    await errorHandling(async () => {
+      await apiAuthFetch(`/api/memos/${id}`, {
+        method: 'DELETE',
+      });
+      await loadMemos();
+    }, setError);
+  }
+
+    function startEdit(memo: Memo) {
+    setEditingId(memo.id);
+    setEditTitle(memo.title);
+    setEditContent(memo.content || '');
+  }
+
+    function cancelEdit() {
+    setEditingId(null);
+    setEditTitle('');
+    setEditContent('');
+  }
+
+  async function updateMemo(id: number) {
+    await errorHandling(async () => {
+      await apiAuthFetch(`/api/memos/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ title: editTitle, content: editContent }),
+      });
+      await loadMemos();
+      cancelEdit();
+    }, setError);
   }
 
     async function logout() {
@@ -79,6 +119,7 @@ export default function MemosPage() {
         <Typography variant="h4" className="font-bold">
           メモ一覧
         </Typography>
+        {userEmail}
         <Button variant="outlined" color="inherit" onClick={logout}>
           ログアウト
         </Button>
